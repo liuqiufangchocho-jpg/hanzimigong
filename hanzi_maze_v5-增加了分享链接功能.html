@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汉字迷宫</title>
+<style>
+  :root{
+    --page:#d7ecf8;
+    --panel:#ffffff;
+    --ink:#1c3a4b;
+    --muted:#6b8a9a;
+    --accent:#ff7a33;
+    --accent-2:#ffb14d;
+    --blue:#2f86c4;
+    --teal:#2f7d9e;
+    --mint:#bfead0;
+    --lav:#dcd6f5;
+
+    /* worksheet */
+    --ws-bg:#dcf0fb;
+    --ws-card:#ffffff;
+    --banner:#fde7c2;
+    --banner-ink:#1f6fb0;
+    --grid-border:#2f7d9e;
+    --cell:#ffffff;
+    --cell-2:#ffffff;
+    --line:#cfe2ee;
+    --hanzi:#1565a6;
+    --hl:#ff7a33;
+    --answer:#c9efd8;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"PingFang SC","Hiragino Sans GB","Yuanti SC","STYuanti","Microsoft YaHei","Heiti SC",sans-serif;
+    background:
+      radial-gradient(120% 80% at 85% -10%, #eaf6ff 0%, transparent 55%),
+      radial-gradient(120% 90% at -10% 110%, #e6fbf0 0%, transparent 50%),
+      var(--page);
+    color:var(--ink);
+    min-height:100vh;
+  }
+
+  .app-header{
+    padding:22px 28px 6px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .app-header .logo{
+    width:42px;height:42px;border-radius:13px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:grid;place-items:center;color:#fff;font-size:22px;
+    box-shadow:0 6px 16px rgba(255,122,51,.35);
+  }
+  .app-header h1{font-size:20px;margin:0;letter-spacing:.5px;}
+  .app-header p{margin:2px 0 0;font-size:13px;color:var(--muted);}
+
+  .layout{
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:22px;
+    padding:14px 28px 40px;
+    align-items:start;
+  }
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  /* ---------- Panel ---------- */
+  .panel{
+    background:var(--panel);
+    border-radius:22px;
+    padding:22px 22px 26px;
+    box-shadow:0 18px 40px rgba(31,90,130,.12);
+    position:sticky;top:14px;
+  }
+  .panel h2{
+    font-size:15px;margin:0 0 16px;color:var(--teal);
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel h2::before{content:"";width:18px;height:18px;border-radius:6px;background:linear-gradient(135deg,var(--blue),#6fc3e8);}
+  .field{margin-bottom:16px;}
+  .field > label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--ink);}
+  .field .hint{font-size:11.5px;color:var(--muted);margin:5px 1px 0;line-height:1.5;}
+  input[type=text],textarea,select{
+    width:100%;border:1.5px solid #dbe9f1;border-radius:13px;
+    padding:11px 13px;font-size:15px;font-family:inherit;color:var(--ink);
+    background:#fafdff;transition:border-color .15s, box-shadow .15s;
+  }
+  textarea{resize:vertical;min-height:60px;line-height:1.5;}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px rgba(47,134,196,.14);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .seg{display:flex;background:#eef6fb;border-radius:13px;padding:4px;gap:4px;}
+  .seg label{
+    flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--muted);
+    padding:8px 6px;border-radius:10px;cursor:pointer;transition:.15s;
+  }
+  .seg input{display:none;}
+  .seg input:checked + span{}
+  .seg label.on{background:#fff;color:var(--blue);box-shadow:0 3px 9px rgba(31,90,130,.12);}
+
+  .checkline{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);cursor:pointer;margin-bottom:11px;}
+  .checkline input{width:17px;height:17px;accent-color:var(--blue);cursor:pointer;}
+
+  .btns{display:flex;flex-direction:column;gap:10px;margin-top:20px;}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:14px;font-weight:700;font-size:15px;padding:13px;transition:transform .08s, box-shadow .15s, background .15s;}
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 10px 22px rgba(255,122,51,.32);}
+  .btn-primary:hover{box-shadow:0 12px 26px rgba(255,122,51,.42);}
+  .btn-soft{background:#eaf4fb;color:var(--teal);}
+  .btn-soft:hover{background:#e0eefa;}
+
+  .status{margin-top:16px;font-size:12px;color:var(--muted);background:#f4f9fc;border-radius:11px;padding:10px 12px;line-height:1.6;}
+  .status b{color:var(--teal);}
+  .status .warn{color:#d9772e;}
+  .status .hint{color:var(--teal);margin-top:4px;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .dot.ok{background:#37c98a;}
+  .dot.fb{background:#f1ad4e;}
+
+  /* ---------- Preview ---------- */
+  .preview-wrap{min-width:0;}
+  .preview-toolbar{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:12px;flex-wrap:wrap;gap:10px;
+  }
+  .preview-toolbar .left{font-size:13px;color:var(--muted);}
+  .preview-toolbar .left b{color:var(--teal);}
+  .preview{
+    background:var(--ws-bg);
+    border-radius:24px;
+    padding:26px;
+    box-shadow:0 18px 50px rgba(31,90,130,.16);
+    overflow:auto;
+  }
+
+  /* ===== Worksheet (printable) ===== */
+  .worksheet{
+    background:var(--ws-card);
+    border-radius:20px;
+    padding:26px 30px 34px;
+    max-width:1000px;
+    margin:0 auto;
+    position:relative;
+  }
+  .ws-head{display:flex;align-items:flex-end;gap:10px;margin:4px 0 20px;padding-left:6px;}
+  .ws-head .kid{flex:0 0 auto;margin-bottom:-2px;}
+  .emoji-kid{font-size:54px;line-height:1;display:inline-block;}
+  .emoji-deco{font-size:34px;line-height:1;display:inline-block;}
+  .banner{
+    background:var(--banner);
+    border-radius:999px;
+    padding:13px 30px;
+    font-size:clamp(17px,2.4vw,26px);
+    font-weight:800;
+    color:var(--banner-ink);
+    letter-spacing:1px;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.6);
+    flex:1;
+    text-align:center;
+    line-height:1.3;
+  }
+  .banner .hl{color:var(--hl);padding:0 .15em;}
+
+  .grid-wrap{position:relative;padding:6px 8px 8px;}
+  @media (max-width:560px){ .grid-wrap{padding:6px 4px 4px;} }
+
+  .grid{
+    container-type:inline-size;
+    display:grid;
+    border:4px solid var(--grid-border);
+    border-radius:16px;
+    overflow:hidden;
+    background:var(--line);
+    gap:1.5px;
+    position:relative;
+  }
+  .cell{
+    position:relative;
+    aspect-ratio:1/1;
+    background:var(--cell);
+    display:grid;place-items:center;
+    font-size:calc(var(--fs,5) * 1cqw);
+    font-weight:800;
+    color:var(--hanzi);
+    line-height:1;
+    user-select:none;
+  }
+  .cell.alt{background:var(--cell-2);}
+
+  /* answer reveal */
+  .worksheet.reveal .cell.path{background:var(--answer);}
+  .worksheet.reveal .cell.path.alt{background:#bfe9cf;}
+
+  /* 起点/终点角标 */
+  .cell .corner{position:absolute;font-size:.62em;line-height:1;pointer-events:none;}
+  .cell .corner.tl{top:5%;left:6%;}
+  .cell .corner.br{bottom:5%;right:6%;}
+
+  .ws-foot{
+    text-align:center;
+    font-size:11px;
+    letter-spacing:2px;
+    color:#9bb6c4;
+    font-weight:700;
+    margin-top:14px;
+    padding:0;
+  }
+
+  /* ---------- 学生模式 ---------- */
+  .stu-bar{display:none;}
+  body.student .app-header,
+  body.student .panel,
+  body.student .preview-toolbar{display:none !important;}
+  body.student .layout{display:block;padding:18px 12px;}
+  body.student .preview{max-width:860px;margin:0 auto;}
+  body.student .grid{touch-action:none;cursor:pointer;}
+  body.student .cell{cursor:pointer;}
+  body.student .stu-bar{
+    display:block;text-align:center;max-width:860px;margin:14px auto 30px;
+  }
+  .stu-tip{font-size:13px;color:var(--muted);margin-bottom:8px;}
+  .stu-msg{min-height:22px;font-size:15px;font-weight:800;margin-bottom:10px;}
+  .stu-msg.good{color:#2aa46a;}
+  .stu-msg.bad{color:#d9772e;}
+  .stu-btns{display:flex;gap:10px;justify-content:center;}
+  .stu-btns button{min-width:120px;}
+  .cell.trail{background:var(--answer) !important;}
+  .cell.trail.alt{background:#bfe9cf !important;}
+  .cell.head{box-shadow:inset 0 0 0 3px #37c98a;}
+  .cell.wrong{background:#ffc9c9 !important;}
+  .worksheet.solved .grid{border-color:#37c98a;}
+
+  /* ---------- Print ---------- */
+  @media print{
+    .stu-bar{display:none !important;}
+    @page{size:A4 landscape;margin:8mm;}
+    html,body{height:auto;background:#fff;}
+    .app-header,.panel,.preview-toolbar{display:none !important;}
+    .layout{display:block;padding:0;margin:0;}
+    .preview{background:#fff;box-shadow:none;padding:0;border-radius:0;overflow:visible;}
+    .worksheet{
+      box-shadow:none;max-width:100%;padding:0;margin:0;
+      min-height:192mm;                 /* 充满 A4 横向可打印高度 */
+      display:flex;flex-direction:column;justify-content:center;
+      position:relative;
+      page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;overflow:hidden;
+    }
+    .ws-head{margin:0 0 14px;}
+    .grid-wrap{padding:6px 8px;}
+    .ws-foot{                            /* 固定在页脚位置 */
+      position:absolute;left:0;right:0;bottom:0;margin:0;
+    }
+    .worksheet.reveal .cell.path{background:var(--cell) !important;}
+    .worksheet.reveal .cell.path.alt{background:var(--cell-2) !important;}
+    .worksheet.print-answer .cell.path{background:var(--answer) !important;}
+    .worksheet.print-answer .cell.path.alt{background:#bfe9cf !important;}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">车</div>
+    <div>
+      <h1>汉字迷宫生成器</h1>
+      <p>输入字 / 词 / 句，自动生成迷宫路线，可导出 PDF 或生成学生在线作答链接</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ===== 控制面板 ===== -->
+    <section class="panel">
+      <h2>迷宫设置</h2>
+
+      <div class="field">
+        <label for="target">目标内容（汉字 / 词语 / 句子）</label>
+        <input type="text" id="target" value="车" placeholder="例如：车  或  上学  或  我爱上学">
+        <div class="hint">不同字词或句子，请用逗号隔开。</div>
+      </div>
+
+      <div class="field">
+        <label for="title">标题文字</label>
+        <textarea id="title" rows="2"></textarea>
+        <div class="hint">修改目标后会自动更新；也可手动改写。</div>
+      </div>
+
+      <div class="field">
+        <label>网格大小（行 × 列）</label>
+        <div class="row2">
+          <input type="number" id="rows" min="4" max="14" value="8">
+          <input type="number" id="cols" min="4" max="14" value="8">
+        </div>
+        <div class="hint">默认 8×8。句子较长时建议加大网格。</div>
+      </div>
+
+      <div class="field">
+        <label>干扰字来源</label>
+        <div class="seg" id="seg-mode">
+          <label data-v="auto" class="on"><input type="radio" name="mode" value="auto" checked><span>自动填入</span></label>
+          <label data-v="manual"><input type="radio" name="mode" value="manual"><span>手动输入</span></label>
+        </div>
+      </div>
+
+      <div class="field" id="manual-field" style="display:none;">
+        <label for="distractors">手动干扰字</label>
+        <input type="text" id="distractors" placeholder="例如：话 干 果 省 来 与">
+        <div class="hint">用空格或逗号分隔；与目标相同的字会自动剔除。</div>
+      </div>
+
+      <label class="checkline"><input type="checkbox" id="showAns"> 屏幕上显示答案路线（仅供老师核对）</label>
+      <label class="checkline"><input type="checkbox" id="printAns"> 导出 PDF 时也显示答案路线</label>
+
+      <div class="btns">
+        <button class="btn-soft" id="regen">↻ 换一条路线</button>
+        <button class="btn-primary" id="export">导出 PDF</button>
+      </div>
+      <div class="btns">
+        <button class="btn-soft" id="share" style="width:100%">🔗 生成学生链接</button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </section>
+
+    <!-- ===== 预览 ===== -->
+    <section class="preview-wrap">
+      <div class="preview-toolbar">
+        <div class="left">预览（导出 / 分享时将隐藏左侧设置）· 目标：<b id="tag-target">车</b> · 路线 <b id="tag-len">0</b> 格</div>
+      </div>
+      <div class="preview">
+        <div class="worksheet" id="worksheet">
+          <div class="ws-head">
+            <div class="kid" id="kid"></div>
+            <div class="banner" id="banner"></div>
+          </div>
+          <div class="grid-wrap" id="gridwrap">
+            <div class="grid" id="grid"></div>
+          </div>
+          <div class="ws-foot">TEACHER LIU'S CHINESE LEARNING STUDIO</div>
+        </div>
+        <div class="stu-bar" id="stu-bar">
+          <div class="stu-tip">Drag from the flag 🚩 to the star ⭐ along the target character.</div>
+          <div class="stu-msg" id="stu-msg"></div>
+          <div class="stu-btns">
+            <button class="btn-soft" id="stu-clear">Clear</button>
+            <button class="btn-primary" id="stu-check">Check</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+/* ============================================================
+   汉字迷宫生成器  v5
+   ============================================================ */
+
+const CJK = /[\u3400-\u9fff\uf900-\ufaff]/;
+
+/* 内置兜底干扰字库（当 Charadata.js 不可用且未手动输入时使用） */
+const BUILTIN = "话干果省来与午育人口手大小上下日月水火山石田土天空云风雨花草木林子女好你我他的了不在有是这那来去多少东西南北左右前后里外开关高矮长短".split("").filter(c=>CJK.test(c));
+
+/* ---------- 随机数（可种子化，保证同一链接生成同一张迷宫） ---------- */
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RNG=Math.random;
+
+/* ---------- 链接编解码（base64url，无需外部库） ---------- */
+function b64e(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin=""; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function b64d(s){
+  s=s.replace(/-/g,"+").replace(/_/g,"/");
+  const bin=atob(s);
+  return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0)));
+}
+
+/* ---------- 工具 ---------- */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(RNG()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function key(r,c){return r+","+c;}
+function neighbors(r,c,R,C){
+  const o=[];
+  if(r>0)o.push([r-1,c]);
+  if(r<R-1)o.push([r+1,c]);
+  if(c>0)o.push([r,c-1]);
+  if(c<C-1)o.push([r,c+1]);
+  return o;
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+/* ---------- 加载 Charadata.js 字库 ---------- */
+function collectChars(obj,out,depth){
+  if(depth>5||obj==null)return;
+  const t=typeof obj;
+  if(t==="string"){ if(obj.length===1&&CJK.test(obj))out.add(obj); return; }
+  if(Array.isArray(obj)){ for(const v of obj)collectChars(v,out,depth+1); return; }
+  if(t==="object"){
+    for(const k of Object.keys(obj)){
+      if(typeof k==="string"&&k.length===1&&CJK.test(k))out.add(k);
+      try{ collectChars(obj[k],out,depth+1); }catch(e){}
+    }
+  }
+}
+let CHARA = {pool:[], source:"加载中…", count:0};
+async function loadChara(){
+  try{
+    const mod = await import("./Charadata.js");
+    const out = new Set();
+    collectChars(mod,out,0);
+    if(mod.default) collectChars(mod.default,out,0);
+    if(out.size>0){ CHARA={pool:[...out],source:"Charadata.js",count:out.size}; return; }
+    CHARA={pool:BUILTIN.slice(),source:"内置字库（Charadata.js 未含可用字）",count:BUILTIN.length};
+  }catch(e){
+    console.warn("Charadata.js 加载失败：",e);
+    CHARA={pool:BUILTIN.slice(),source:"内置字库（未找到 Charadata.js）",count:BUILTIN.length};
+  }
+}
+
+/* ---------- 路线生成 ---------- */
+/* 「细路线」：自回避且无相邻捷径（induced），保证唯一解。带硬性时间预算，避免大网格卡死。 */
+function dfsPath(R,C,start,end,minLen,maxNodes){
+  const visited=new Set();
+  const path=[];
+  let nodes=0; let abort=false;
+  function inducedOK(r,c){
+    const cur=path[path.length-1];
+    for(const [nr,nc] of neighbors(r,c,R,C)){
+      if(visited.has(key(nr,nc))){
+        if(!(cur && nr===cur[0] && nc===cur[1])) return false;
+      }
+    }
+    return true;
+  }
+  function rec(r,c){
+    if(abort) return false;
+    if(++nodes>maxNodes){ abort=true; return false; }
+    visited.add(key(r,c)); path.push([r,c]);
+    if(r===end[0]&&c===end[1]){
+      if(path.length>=minLen) return true;
+      visited.delete(key(r,c)); path.pop(); return false;
+    }
+    let nb=neighbors(r,c,R,C)
+      .filter(([nr,nc])=>!visited.has(key(nr,nc)))
+      .filter(([nr,nc])=>inducedOK(nr,nc));
+    shuffle(nb);
+    if(path.length<minLen){
+      nb.sort((a,b)=>((a[0]===end[0]&&a[1]===end[1])?1:0)-((b[0]===end[0]&&b[1]===end[1])?1:0));
+    }
+    for(const [nr,nc] of nb){ if(rec(nr,nc)) return true; if(abort) return false; }
+    visited.delete(key(r,c)); path.pop(); return false;
+  }
+  if(rec(start[0],start[1])) return path.slice();
+  return null;
+}
+/* 随机递归回溯生成迷宫（生成树），再用 BFS 取唯一路径。大网格时使用，始终连通、瞬时完成。 */
+function carveMaze(R,C){
+  const adj=Array.from({length:R*C},()=>[]);
+  const vis=new Array(R*C).fill(false);
+  const st=[[0,0]]; vis[0]=true;
+  while(st.length){
+    const [r,c]=st[st.length-1];
+    const nb=neighbors(r,c,R,C).filter(([nr,nc])=>!vis[nr*C+nc]);
+    if(!nb.length){ st.pop(); continue; }
+    const [nr,nc]=nb[Math.floor(RNG()*nb.length)];
+    adj[r*C+c].push(nr*C+nc); adj[nr*C+nc].push(r*C+c);
+    vis[nr*C+nc]=true; st.push([nr,nc]);
+  }
+  return adj;
+}
+function mazeSolution(R,C){
+  const adj=carveMaze(R,C);
+  const endI=R*C-1;
+  const prev=new Array(R*C).fill(-1);
+  const seen=new Array(R*C).fill(false);
+  const q=[0]; seen[0]=true;
+  while(q.length){
+    const cur=q.shift();
+    if(cur===endI)break;
+    for(const n of adj[cur]){ if(!seen[n]){ seen[n]=true; prev[n]=cur; q.push(n); } }
+  }
+  const path=[]; let cur=endI;
+  while(cur!==-1){ path.push([Math.floor(cur/C),cur%C]); cur=prev[cur]; }
+  path.reverse(); return path;
+}
+function generatePath(R,C){
+  const total=R*C;
+  if(total<=64){
+    /* 用「节点数」而非时间做预算：同一种子在任何电脑上都生成同一条路线 */
+    for(const minLen of [0.45,0.35,0.28].map(f=>Math.max(2,Math.floor(total*f)))){
+      for(let t=0;t<12;t++){
+        const p=dfsPath(R,C,[0,0],[R-1,C-1],minLen,40000);
+        if(p)return {path:p,quality:"clean"};
+      }
+    }
+  }
+  return {path:mazeSolution(R,C),quality:"maze"};
+}
+
+/* ---------- 解析目标 ---------- */
+function parseSeq(raw){
+  const chars=[...raw].filter(ch=>!/\s/.test(ch));
+  const cjk=chars.filter(ch=>CJK.test(ch));
+  return cjk.length?cjk:chars;
+}
+function defaultTitle(raw,seq){
+  return 'Please find "'+raw.trim()+'"';
+}
+
+/* ---------- 构建网格 ---------- */
+function buildGrid(R,C,seq,path,pool){
+  const grid=Array.from({length:R},()=>Array(C).fill(null));
+  const pathSet=new Set(path.map(([r,c])=>key(r,c)));
+  path.forEach(([r,c],i)=>{ grid[r][c]=seq[i%seq.length]; });
+  const targetSet=new Set(seq);
+  let dist=pool.filter(ch=>!targetSet.has(ch));
+  if(dist.length===0) dist=BUILTIN.filter(ch=>!targetSet.has(ch));
+  if(dist.length===0) dist=["口"];
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    if(grid[r][c]==null) grid[r][c]=dist[Math.floor(RNG()*dist.length)];
+  }
+  return {grid,pathSet};
+}
+
+/* ---------- 装饰（emoji） ---------- */
+function svgKid(){ return '<span class="emoji-kid">🏃‍➡️</span>'; }
+
+/* ---------- 渲染 ---------- */
+let STATE = null;
+
+function render(){
+  const ws=document.getElementById("worksheet");
+  const grid=document.getElementById("grid");
+  const banner=document.getElementById("banner");
+  const gw=document.getElementById("gridwrap");
+
+  const {R,C,seq,grid:G,pathSet,title,raw,path}=STATE;
+
+  /* 标题 + 高亮（高亮引号内的目标内容） */
+  let html=escapeHtml(title);
+  const hlText=(raw||"").trim();
+  if(hlText){
+    const safe=escapeHtml(hlText);
+    const idx=html.indexOf(safe);
+    if(idx>=0) html=html.slice(0,idx)+'<span class="hl">'+safe+'</span>'+html.slice(idx+safe.length);
+  }
+  banner.innerHTML=html;
+
+  /* 网格 */
+  const start=path[0], end=path[path.length-1];
+  grid.style.gridTemplateColumns="repeat("+C+",1fr)";
+  grid.style.setProperty("--fs",(46/C).toFixed(3));
+  grid.innerHTML="";
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement("div");
+    d.className="cell"+(((r+c)%2)?" alt":"")+(pathSet.has(key(r,c))?" path":"");
+    d.textContent=G[r][c];
+    if(r===start[0]&&c===start[1]){
+      const f=document.createElement("span"); f.className="corner tl"; f.textContent="🚩"; d.appendChild(f);
+    }
+    if(r===end[0]&&c===end[1]){
+      const s=document.createElement("span"); s.className="corner br"; s.textContent="⭐"; d.appendChild(s);
+    }
+    grid.appendChild(d);
+  }
+
+  /* answer reveal class */
+  ws.classList.toggle("reveal", document.getElementById("showAns").checked);
+
+  document.getElementById("tag-target").textContent=raw||"—";
+  document.getElementById("tag-len").textContent=path.length;
+  renderStatus();
+}
+
+function renderStatus(){
+  const s=document.getElementById("status");
+  let warn="";
+  if(STATE){
+    if(STATE.seq.length>STATE.path.length){
+      warn+='<div class="warn">⚠ 目标字数（'+STATE.seq.length+'）多于路线格数（'+STATE.path.length+'），整句未能完整排满一遍，建议加大网格。</div>';
+    }
+    if(STATE.quality==="maze"){
+      warn+='<div class="hint">ℹ 当前为迷宫式路线（路径较曲折，可能有并排的路线格）。如需更干净的单线路线，可将网格缩小到 8×8 及以内。</div>';
+    }
+  }
+  s.innerHTML=warn;
+  s.style.display = warn ? "block" : "none";
+}
+
+/* ---------- 主流程 ---------- */
+function getPool(){
+  const mode=document.querySelector('input[name="mode"]:checked').value;
+  if(mode==="manual"){
+    const raw=document.getElementById("distractors").value;
+    const arr=[...raw].filter(ch=>!/\s/.test(ch)&&ch!==","&&ch!=="，");
+    const cjk=arr.filter(ch=>CJK.test(ch));
+    const pool=(cjk.length?cjk:arr);
+    if(pool.length) return pool;
+  }
+  return CHARA.pool;
+}
+
+function generate(seed){
+  const raw=document.getElementById("target").value.trim();
+  const seq=parseSeq(raw);
+  if(seq.length===0){ alert("请先输入目标汉字 / 词语 / 句子。"); return; }
+
+  let R=parseInt(document.getElementById("rows").value,10);
+  let C=parseInt(document.getElementById("cols").value,10);
+  R=Math.max(4,Math.min(14,R||8));
+  C=Math.max(4,Math.min(14,C||8));
+  document.getElementById("rows").value=R;
+  document.getElementById("cols").value=C;
+
+  if(seed==null) seed=(Math.random()*4294967296)>>>0;
+  RNG=mulberry32(seed);
+
+  const {path,quality}=generatePath(R,C);
+  const pool=getPool();
+  const {grid:G,pathSet}=buildGrid(R,C,seq,path,pool);
+
+  const title=document.getElementById("title").value;
+
+  STATE={R,C,seq,raw,path,pathSet,grid:G,title,quality,seed};
+  render();
+}
+
+/* 标题自动联动（仅当用户未手改时覆盖） */
+let lastAutoTitle="";
+function syncTitle(){
+  const raw=document.getElementById("target").value.trim();
+  const seq=parseSeq(raw);
+  const titleEl=document.getElementById("title");
+  if(titleEl.value.trim()===""||titleEl.value===lastAutoTitle){
+    lastAutoTitle=defaultTitle(raw,seq);
+    titleEl.value=lastAutoTitle;
+  }
+}
+
+/* ---------- 事件 ---------- */
+function wire(){
+  // segmented control
+  document.querySelectorAll('#seg-mode label').forEach(l=>{
+    l.addEventListener("click",()=>{
+      document.querySelectorAll('#seg-mode label').forEach(x=>x.classList.remove("on"));
+      l.classList.add("on");
+      const v=l.dataset.v;
+      l.querySelector("input").checked=true;
+      document.getElementById("manual-field").style.display = v==="manual"?"block":"none";
+    });
+  });
+
+  document.getElementById("target").addEventListener("input",syncTitle);
+  document.getElementById("title").addEventListener("input",()=>{ /* 一旦手改，停止自动覆盖 */ });
+
+  document.getElementById("regen").addEventListener("click",generate);
+  document.getElementById("export").addEventListener("click",()=>window.print());
+
+  document.getElementById("showAns").addEventListener("change",()=>{
+    if(STATE) document.getElementById("worksheet").classList.toggle("reveal",document.getElementById("showAns").checked);
+  });
+
+  // 输入回车即生成
+  ["target","rows","cols","distractors"].forEach(id=>{
+    document.getElementById(id).addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();generate();} });
+  });
+
+  // 打印时按需显示答案
+  window.addEventListener("beforeprint",()=>{
+    document.getElementById("worksheet").classList.toggle("print-answer",document.getElementById("printAns").checked);
+    fitGridForPrint();
+    const t=(STATE&&STATE.raw?STATE.raw.trim():"").replace(/[\\/:*?"<>|]/g,"");
+    document.title = t ? "汉字迷宫_"+t : "汉字迷宫";
+  });
+  window.addEventListener("afterprint",()=>{
+    document.getElementById("worksheet").classList.remove("print-answer");
+    resetGridSize();
+    document.title = "汉字迷宫";
+  });
+}
+
+/* 打印时按行列比例限定网格宽度，保证整张迷宫在 A4 横向单页内显示 */
+function fitGridForPrint(){
+  if(!STATE) return;
+  const grid=document.getElementById("grid");
+  const {R,C}=STATE;
+  // A4 横向可用区域（mm），扣除页边距与装饰留白后的预算
+  const budgetW=248;   // 横向可用宽度
+  const budgetH=126;   // 扣除标题/页脚/留白后的网格高度预算
+  // 方格为正方形，网格高:宽 ≈ R:C，取在两个预算内的最大宽度
+  const w=Math.min(budgetW, budgetH*C/R);
+  grid.style.width=w+"mm";
+  grid.style.margin="0 auto";
+}
+function resetGridSize(){
+  const grid=document.getElementById("grid");
+  grid.style.width="";
+  grid.style.margin="";
+}
+
+/* ---------- 分享链接 ---------- */
+function buildShareLink(){
+  if(!STATE) return null;
+  const cfg={
+    t:STATE.raw, r:STATE.R, c:STATE.C, s:STATE.seed,
+    ti:STATE.title,
+    m:document.querySelector('#seg-mode input:checked').value,
+    d:document.getElementById("distractors").value.trim()
+  };
+  const base=location.origin+location.pathname;
+  return base+"?m="+b64e(JSON.stringify(cfg));
+}
+function readShareCfg(){
+  const p=new URLSearchParams(location.search).get("m");
+  if(!p) return null;
+  try{ return JSON.parse(b64d(p)); }catch(e){ return null; }
+}
+function applyCfg(cfg){
+  document.getElementById("target").value=cfg.t||"车";
+  document.getElementById("rows").value=cfg.r||8;
+  document.getElementById("cols").value=cfg.c||8;
+  document.getElementById("title").value=cfg.ti||"";
+  document.getElementById("distractors").value=cfg.d||"";
+  const mode=cfg.m==="manual"?"manual":"auto";
+  document.querySelectorAll('#seg-mode label').forEach(l=>{
+    const on=l.dataset.v===mode;
+    l.classList.toggle("on",on);
+    l.querySelector("input").checked=on;
+  });
+  document.getElementById("manual-field").style.display = mode==="manual"?"block":"none";
+}
+
+/* ---------- 学生作答（在线走迷宫） ---------- */
+const TRAIL=[];
+function cellAt(r,c){
+  if(!STATE||r<0||c<0||r>=STATE.R||c>=STATE.C) return null;
+  return document.getElementById("grid").children[r*STATE.C+c];
+}
+function paintTrail(){
+  document.querySelectorAll("#grid .cell").forEach(e=>e.classList.remove("trail","head"));
+  TRAIL.forEach(([r,c],i)=>{
+    const el=cellAt(r,c); if(!el)return;
+    el.classList.add("trail");
+    if(i===TRAIL.length-1) el.classList.add("head");
+  });
+}
+function trailTry(r,c){
+  if(!STATE) return;
+  if(TRAIL.length===0){
+    if(r===0&&c===0) TRAIL.push([r,c]);
+    return paintTrail();
+  }
+  const idx=TRAIL.findIndex(([tr,tc])=>tr===r&&tc===c);
+  if(idx>=0){ TRAIL.length=idx+1; return paintTrail(); }   // 回退
+  const last=TRAIL[TRAIL.length-1];
+  if(Math.abs(last[0]-r)+Math.abs(last[1]-c)!==1) return;  // 必须相邻
+  TRAIL.push([r,c]);
+  paintTrail();
+  setMsg("");
+}
+function setMsg(text,kind){
+  const m=document.getElementById("stu-msg");
+  if(!m)return;
+  m.textContent=text||"";
+  m.className="stu-msg"+(kind?" "+kind:"");
+}
+function checkTrail(){
+  if(!STATE) return;
+  const {R,C,pathSet}=STATE;
+  if(TRAIL.length===0) return setMsg("Start at the flag 🚩 and trace to the star ⭐.","bad");
+  const first=TRAIL[0], last=TRAIL[TRAIL.length-1];
+  if(first[0]!==0||first[1]!==0) return setMsg("Your path must start at the flag 🚩.","bad");
+  if(last[0]!==R-1||last[1]!==C-1) return setMsg("Keep going — you haven't reached the star ⭐ yet.","bad");
+  const wrong=TRAIL.filter(([r,c])=>!pathSet.has(key(r,c)));
+  if(wrong.length){
+    setMsg("Not quite — "+wrong.length+" of your squares are not the target character. Try again!","bad");
+    wrong.forEach(([r,c])=>{ const el=cellAt(r,c); if(el){el.classList.add("wrong"); setTimeout(()=>el.classList.remove("wrong"),1200);} });
+    return;
+  }
+  setMsg("🎉 Well done! You found the whole path!","good");
+  document.getElementById("worksheet").classList.add("solved");
+}
+function clearTrail(){
+  TRAIL.length=0;
+  paintTrail();
+  document.getElementById("worksheet").classList.remove("solved");
+  setMsg("");
+}
+function wireStudent(){
+  const grid=document.getElementById("grid");
+  let drawing=false;
+  function pick(e){
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    if(!el||!el.classList.contains("cell"))return;
+    const i=[...grid.children].indexOf(el);
+    if(i<0)return;
+    trailTry(Math.floor(i/STATE.C), i%STATE.C);
+  }
+  grid.addEventListener("pointerdown",e=>{ drawing=true; pick(e); e.preventDefault(); });
+  grid.addEventListener("pointermove",e=>{ if(drawing) pick(e); });
+  window.addEventListener("pointerup",()=>{ drawing=false; });
+  document.getElementById("stu-check").addEventListener("click",checkTrail);
+  document.getElementById("stu-clear").addEventListener("click",clearTrail);
+}
+
+/* ---------- 启动 ---------- */
+(async function init(){
+  document.getElementById("kid").innerHTML=svgKid();
+  const cfg=readShareCfg();
+
+  if(cfg){
+    /* 学生模式：只显示迷宫，可在线作答 */
+    document.body.classList.add("student");
+    await loadChara();
+    applyCfg(cfg);
+    generate(cfg.s>>>0);
+    wireStudent();
+    document.title="汉字迷宫";
+    return;
+  }
+
+  wire();
+  syncTitle();
+  await loadChara();
+  generate();
+  document.getElementById("share").addEventListener("click",()=>{
+    if(location.protocol==="file:"){
+      alert("分享链接需要先把本文件上传到网页空间（如 GitHub Pages）。\n本地 file:// 打开时生成的链接别人无法打开。");
+      return;
+    }
+    const url=buildShareLink();
+    if(!url)return;
+    navigator.clipboard.writeText(url).then(
+      ()=>alert("学生链接已复制：\n\n"+url),
+      ()=>prompt("请手动复制学生链接：",url)
+    );
+  });
+})();
+</script>
+</body>
+</html>
