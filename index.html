@@ -1069,59 +1069,137 @@ function safeCertificateName(value){
 
 function downloadCertificate(){
   if(!STATE) return;
-  const canvas=document.createElement("canvas");
-  canvas.width=1600; canvas.height=1100;
-  const ctx=canvas.getContext("2d");
-  const grad=ctx.createLinearGradient(0,0,1600,1100);
-  grad.addColorStop(0,"#f4fbff"); grad.addColorStop(.5,"#ffffff"); grad.addColorStop(1,"#f2fff7");
-  ctx.fillStyle=grad; ctx.fillRect(0,0,1600,1100);
 
-  ctx.strokeStyle="#2f86c4"; ctx.lineWidth=12; ctx.strokeRect(42,42,1516,1016);
-  ctx.strokeStyle="#ffb14d"; ctx.lineWidth=4; ctx.strokeRect(66,66,1468,968);
+  const canvas=document.createElement("canvas");
+  canvas.width=1600;
+  canvas.height=1100;
+
+  const ctx=canvas.getContext("2d");
+
+  // Background
+  const grad=ctx.createLinearGradient(0,0,1600,1100);
+  grad.addColorStop(0,"#f4fbff");
+  grad.addColorStop(.5,"#ffffff");
+  grad.addColorStop(1,"#f2fff7");
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,1600,1100);
+
+  // Borders
+  ctx.strokeStyle="#2f86c4";
+  ctx.lineWidth=12;
+  ctx.strokeRect(42,42,1516,1016);
+
+  ctx.strokeStyle="#ffb14d";
+  ctx.lineWidth=4;
+  ctx.strokeRect(66,66,1468,968);
 
   ctx.textAlign="center";
-  ctx.fillStyle="#6b8a9a"; ctx.font="700 30px Arial, sans-serif";
-  ctx.fillText("TEACHER LIU'S CHINESE LEARNING STUDIO",800,145);
 
-  ctx.fillStyle="#1f6fb0"; ctx.font="700 68px Georgia, serif";
-  ctx.fillText("CERTIFICATE OF ACHIEVEMENT",800,260);
-  ctx.fillStyle="#6b8a9a"; ctx.font="32px Arial, sans-serif";
-  ctx.fillText("This certificate is proudly presented to",800,335);
+  // Studio
+  ctx.fillStyle="#6b8a9a";
+  ctx.font="700 30px Arial, sans-serif";
+  ctx.fillText(
+    "TEACHER LIU'S CHINESE LEARNING STUDIO",
+    800,
+    150
+  );
 
-  const student=selectedStudentName||"Student";
-  ctx.fillStyle="#ff7a33"; ctx.font="700 72px Georgia, serif";
-  ctx.fillText(student,800,445);
-  ctx.strokeStyle="#cfe2ee"; ctx.lineWidth=3; ctx.beginPath();ctx.moveTo(360,475);ctx.lineTo(1240,475);ctx.stroke();
+  // Main title
+  ctx.fillStyle="#1f6fb0";
+  ctx.font="700 72px Georgia, serif";
+  ctx.fillText(
+    "CERTIFICATE OF COMPLETION",
+    800,
+    285
+  );
 
-  if(selectedClassName){
-    ctx.fillStyle="#6b8a9a"; ctx.font="28px Arial, sans-serif";
-    ctx.fillText("Class: "+selectedClassName,800,525);
+  // Completion text
+  ctx.fillStyle="#6b8a9a";
+  ctx.font="32px Arial, sans-serif";
+  ctx.fillText(
+    "This certificate confirms the successful completion of",
+    800,
+    390
+  );
+
+  // Challenge name
+  ctx.fillStyle="#2f7d9e";
+  ctx.font="700 55px Arial, sans-serif";
+  ctx.fillText(
+    "CHINESE CHARACTER MAZE CHALLENGE",
+    800,
+    505
+  );
+
+  // Decorative line
+  ctx.strokeStyle="#cfe2ee";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(360,555);
+  ctx.lineTo(1240,555);
+  ctx.stroke();
+
+  // Target
+  ctx.fillStyle="#1c3a4b";
+  ctx.font="32px Arial, sans-serif";
+  ctx.fillText(
+    "Target: " + String(STATE.raw || ""),
+    800,
+    640
+  );
+
+  // Date
+  const completedDate=new Date().toLocaleDateString(
+    "en-GB",
+    {
+      day:"2-digit",
+      month:"long",
+      year:"numeric"
+    }
+  );
+
+  ctx.fillStyle="#6b8a9a";
+  ctx.font="27px Arial, sans-serif";
+  ctx.fillText(
+    "Completed on " + completedDate,
+    800,
+    735
+  );
+
+  // Task ID
+  if(currentTask && currentTask.task_code){
+    ctx.fillText(
+      "Task ID: " + currentTask.task_code,
+      800,
+      785
+    );
   }
 
-  ctx.fillStyle="#1c3a4b"; ctx.font="34px Arial, sans-serif";
-  ctx.fillText("for successfully completing the",800,600);
-  ctx.fillStyle="#2f7d9e"; ctx.font="700 50px Arial, sans-serif";
-  ctx.fillText("CHINESE CHARACTER MAZE CHALLENGE",800,670);
+  // Achievement icon
+  ctx.fillStyle="#ffb14d";
+  ctx.beginPath();
+  ctx.arc(800,890,50,0,Math.PI*2);
+  ctx.fill();
 
-  ctx.fillStyle="#1c3a4b"; ctx.font="30px Arial, sans-serif";
-  ctx.fillText("Target: "+String(STATE.raw||""),800,735);
+  ctx.fillStyle="#ffffff";
+  ctx.font="700 50px Arial, sans-serif";
+  ctx.fillText("★",800,908);
 
-  const completedDate=new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
-  ctx.fillStyle="#6b8a9a"; ctx.font="26px Arial, sans-serif";
-  ctx.fillText("Completed on "+completedDate,800,820);
-  if(currentTask&&currentTask.task_code){ ctx.fillText("Task ID: "+currentTask.task_code,800,860); }
+  // Closing text
+  ctx.fillStyle="#2f7d9e";
+  ctx.font="700 30px Arial, sans-serif";
+  ctx.fillText(
+    "Challenge Completed Successfully!",
+    800,
+    990
+  );
 
-  ctx.fillStyle="#ffb14d"; ctx.beginPath();ctx.arc(800,935,46,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#ffffff"; ctx.font="700 46px Arial, sans-serif";ctx.fillText("★",800,951);
-  ctx.fillStyle="#2f7d9e"; ctx.font="700 28px Arial, sans-serif";
-  ctx.fillText("Excellent work!",800,1020);
-
+  // Download
   const link=document.createElement("a");
-  link.download="Chinese_Character_Maze_Certificate_"+safeCertificateName(student)+".png";
+  link.download="Chinese_Character_Maze_Certificate.png";
   link.href=canvas.toDataURL("image/png");
   link.click();
 }
-
 /* ---------- 分享链接 ---------- */
 function buildShareLink(){
   if(!STATE) return null;
